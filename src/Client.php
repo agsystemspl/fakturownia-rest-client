@@ -2,89 +2,66 @@
 
 namespace AGSystems\Fakturownia\REST;
 
-use GuzzleHttp\Psr7\Response;
-
-class Client
+/**
+ * Class Client
+ * @package AGSystems\Fakturownia\REST
+ *
+ * @method Client invoices(int $id)
+ * @method Client warehouse_documents(int $id)
+ * @method Client products(int $id)
+ * @method Client clients(int $id)
+ * @method Client payments(int $id)
+ * @method Client categories(int $id)
+ * @method Client warehouses(int $id)
+ *
+ * @property Client invoices
+ * @property Client send_by_email
+ * @property Client warehouse_documents
+ * @property Client products
+ * @property Client clients
+ * @property Client payments
+ * @property Client account
+ * @property Client login
+ * @property Client categories
+ * @property Client warehouses
+ *
+ * @method mixed get(array $parameters = [], array $requestOptions = [])
+ * @method mixed post(array $parameters = [], array $requestOptions = [])
+ * @method mixed put(array $parameters = [], array $requestOptions = [])
+ * @method mixed delete(array $parameters = [], array $requestOptions = [])
+ */
+class Client extends \AGSystems\REST\AbstractClient
 {
-    const ACCESS_MODE = 'JSON';
-
     protected $accessToken;
     protected $apiUrl;
-    protected $query = [];
 
-    public function __construct($accessToken, $apiUrl)
+    public function __construct(
+        $accessToken,
+        $apiUrl,
+        array $options = []
+    )
     {
         $this->accessToken = $accessToken;
         $this->apiUrl = $apiUrl;
+
+        parent::__construct($options);
     }
 
-    public function __get($name)
+    protected function handlePath($path)
     {
-        $this->query[] = $name;
-        return $this;
+        return $path . '.json';
     }
 
-    public function __call($name, $arguments)
+    protected function clientOptions()
     {
-        switch ($name) {
-            case 'get':
-            case 'post':
-            case 'put':
-            case 'delete':
-            case 'file':
-                $uri = implode('/', array_filter($this->query));
-                $this->query = [];
-                $uri .= '.' . strtolower(static::ACCESS_MODE);
-                return $this->request($name, $uri, array_shift($arguments));
-        }
-
-        $this->query[] = $name;
-        $this->query = array_merge($this->query, $arguments);
-        return $this;
-    }
-
-    protected function responseHandler(callable $callback)
-    {
-        /**
-         * @var $response Response
-         */
-        $response = call_user_func($callback);
-        return $response->getBody()->getContents();
-    }
-
-    protected function request($method, $uri, $data = null)
-    {
-        $options = [
+        return [
             'base_uri' => $this->apiUrl,
+            'query' => [
+                'api_token' => $this->accessToken,
+            ],
+            'json' => [
+                'api_token' => $this->accessToken,
+            ]
         ];
-
-        $data = array_merge($data, ['api_token' => $this->accessToken]);
-
-        switch (strtoupper($method)) {
-            case 'GET':
-            case 'DELETE':
-                $options += [
-                    'query' => $data,
-                ];
-                break;
-            case 'POST':
-            case 'PUT':
-                $options += [
-                    'json' => $data,
-                ];
-                break;
-            case 'FILE':
-                $options += [
-                    'file' => $data,
-                ];
-                break;
-        }
-
-        $callback = function () use ($method, $uri, $options) {
-            $client = new \GuzzleHttp\Client($options);
-            return $client->request($method, $uri);
-        };
-
-        return $this->responseHandler($callback);
     }
 }
