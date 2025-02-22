@@ -52,6 +52,13 @@ class Client extends \AGSystems\REST\AbstractClient
         return $path . '.json';
     }
 
+    protected function handleResponse(callable $callback)
+    {
+        $response = call_user_func($callback);
+        $result = json_decode($response->getBody()->getContents());
+        return $result;
+    }
+
     protected function clientOptions()
     {
         return [
